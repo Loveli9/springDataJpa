@@ -1,8 +1,9 @@
 package net.guides.springboot2.springboot2jpacrudexample;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-
+import net.guides.springboot2.springboot2jpacrudexample.model.EmailAddress;
+import net.guides.springboot2.springboot2jpacrudexample.repository.EmailAddressRepository;
+import net.guides.springboot2.springboot2jpacrudexample.repository.EmployeeRepository;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,18 +13,20 @@ import org.springframework.boot.web.server.LocalServerPort;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.web.client.HttpClientErrorException;
-
 import net.guides.springboot2.springboot2jpacrudexample.model.Employee;
+import java.util.List;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = Application.class, webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class EmployeeControllerIntegrationTest {
 	@Autowired
 	private TestRestTemplate restTemplate;
+	@Autowired
+	private EmployeeRepository employeeRepository;
+	@Autowired
+	private EmailAddressRepository emailAddressRepository;
 
 	@LocalServerPort
 	private int port;
@@ -33,15 +36,9 @@ public class EmployeeControllerIntegrationTest {
 	}
 
 	@Test
-	public void contextLoads() {
-
-	}
-
-	@Test
 	public void testGetAllEmployees() {
 		HttpHeaders headers = new HttpHeaders();
 		HttpEntity<String> entity = new HttpEntity<String>(null, headers);
-
 		ResponseEntity<String> response = restTemplate.exchange(getRootUrl() + "/employees",
 				HttpMethod.GET, entity, String.class);
 		
@@ -49,49 +46,45 @@ public class EmployeeControllerIntegrationTest {
 	}
 
 	@Test
-	public void testGetEmployeeById() {
-		Employee employee = restTemplate.getForObject(getRootUrl() + "/employees/1", Employee.class);
-		System.out.println(employee.getFirstName());
-		assertNotNull(employee);
+	public void testCreateEmployee() {
+		for(int i=1;i <= 30;i++) {
+			Employee employee = new Employee();
+			employee.setSex("男" + i);
+			employee.setAge(i);
+			employee.setName("姓名" + i);
+			employee.setRole("员工");
+			employee.setEmailAddress(new EmailAddress(i+"@qq.com",null,null));
+			employeeRepository.save(employee);
+		}
 	}
 
 	@Test
-	public void testCreateEmployee() {
-		Employee employee = new Employee();
-		employee.setEmailId("admin@gmail.com");
-		employee.setFirstName("admin");
-		employee.setLastName("admin");
-
-		ResponseEntity<Employee> postResponse = restTemplate.postForEntity(getRootUrl() + "/employees", employee, Employee.class);
-		assertNotNull(postResponse);
-		assertNotNull(postResponse.getBody());
+	public void testCreateEmailAddress() {
+		for(int i=1;i <= 30;i++) {
+			EmailAddress emailAddress = new EmailAddress(i+"@qq.com","QQ邮箱" + i,true);
+			emailAddressRepository.save(emailAddress);
+		}
 	}
 
 	@Test
 	public void testUpdateEmployee() {
 		int id = 1;
 		Employee employee = restTemplate.getForObject(getRootUrl() + "/employees/" + id, Employee.class);
-		employee.setFirstName("admin1");
-		employee.setLastName("admin2");
-
-		restTemplate.put(getRootUrl() + "/employees/" + id, employee);
-
-		Employee updatedEmployee = restTemplate.getForObject(getRootUrl() + "/employees/" + id, Employee.class);
-		assertNotNull(updatedEmployee);
+		employee.setId(1);
+		employee.setRole("PM");
+		employee.setName("张三");
+		employeeRepository.save(employee);
+		//删除
+		employeeRepository.delete(employee);
 	}
 
 	@Test
-	public void testDeleteEmployee() {
-		int id = 2;
-		Employee employee = restTemplate.getForObject(getRootUrl() + "/employees/" + id, Employee.class);
-		assertNotNull(employee);
+	public void testJPA() {
 
-		restTemplate.delete(getRootUrl() + "/employees/" + id);
+		List<Employee> result = employeeRepository.findByName("姓名8");
+		System.out.println(result);
 
-		try {
-			employee = restTemplate.getForObject(getRootUrl() + "/employees/" + id, Employee.class);
-		} catch (final HttpClientErrorException e) {
-			assertEquals(e.getStatusCode(), HttpStatus.NOT_FOUND);
-		}
+
+
 	}
 }
